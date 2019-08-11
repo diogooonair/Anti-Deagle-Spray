@@ -1,62 +1,56 @@
-#include <sourcemod> 
-#include <sdkhooks> 
+#include <sourcemod>
+#include <cstrike>
 #include <sdktools>
-#include <smlib>
 
-#pragma semicolon 1 
-#pragma tabsize 0;
-
-#define PLUGIN_NAME 			"AntiDeagle Spray"
-#define PLUGIN_AUTHOR 			"DiogoOnAir"
-#define PLUGIN_DESCRIPTION		"AntiDeagleSpray"
-#define PLUGIN_VERSION 			"1.4vFix"
+#pragma semicolon 1
+#pragma newdecls required
 
 public Plugin myinfo =
 {
-    name				=    PLUGIN_NAME,
-    author				=    PLUGIN_AUTHOR,
-    description			=    PLUGIN_DESCRIPTION,
-    version				=    PLUGIN_VERSION,
+	name				=	"Anti Deagle Spray",
+	author				=	"DiogoOnAir",
+	description			=	"AntiDeagleSpray",
+	version				=	"1.5",
 };
 
-public OnPluginStart()
-{ 
-    HookEvent("weapon_fire", Event_WeaponFire, EventHookMode_Post); 
-} 
+public void OnPluginStart()
+{
+	HookEvent("weapon_fire", Event_WeaponFire, EventHookMode_Post);
+}
 
 public void Event_WeaponFire(Event event, const char[] sEventName, bool bDontBroadcast)
-{ 
-    int client = GetClientOfUserId(GetEventInt(event, "userid")); 
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
 
-    char sWeapon[65];
-    event.GetString("weapon", sWeapon, sizeof(sWeapon));
-    
-    if (StrEqual(sWeapon, "weapon_deagle")) 
-    {
-    	    CreateTimer(0.05, RemoveDeagle, client);
-    } 
-}  
+	char sWeapon[65];
+	event.GetString("weapon", sWeapon, sizeof(sWeapon));
+
+	if(StrEqual(sWeapon, "weapon_deagle"))
+	{
+		CreateTimer(0.05, RemoveDeagle, client);
+	}
+}
 
 public Action RemoveDeagle(Handle timer, any client)
 {
-	if (IsValidClient(client) && (IsPlayerAlive(client))) {
-		RemovePlayerItem(client, GetPlayerWeaponSlot(client, 1));
+	if(IsClientInGame(client) && IsPlayerAlive(client))
+	{
+		RemovePlayerItem(client, GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY));
 		CreateTimer(0.15, GiveDeagle, client);
 	}
 }
 
-
 public Action GiveDeagle(Handle timer, any client)
 {
-	if (IsValidClient(client) && (IsPlayerAlive(client))) 
+	if(IsClientInGame(client) && IsPlayerAlive(client))
+	{
 		GivePlayerItem(client, "weapon_deagle");
-		Client_SetActiveWeapon(client, GetPlayerWeaponSlot(client, 1)); 
+		SetActiveWeapon(client, GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY));
+	}
 }
 
-stock bool IsValidClient(int client)
+stock void SetActiveWeapon(int client, int weapon)
 {
-	if(client <= 0 ) return false;
-	if(client > MaxClients) return false;
-	if(!IsClientConnected(client)) return false;
-	return IsClientInGame(client);
+	SetEntPropEnt(client, Prop_Data, "m_hActiveWeapon", weapon);
+	ChangeEdictState(client, FindDataMapInfo(client, "m_hActiveWeapon"));
 }
